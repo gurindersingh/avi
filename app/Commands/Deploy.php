@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Support\Blade;
+use App\Support\Deployment\Deployment;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
@@ -46,7 +47,7 @@ class Deploy extends Command
         'appName' => null,
         'gitRepo' => null
     ];
-    protected ?string $environment = null;
+    protected ?string $stage = null;
 
     /**
      * Execute the console command.
@@ -55,6 +56,10 @@ class Deploy extends Command
      */
     public function handle()
     {
+        Deployment::handle($this);
+
+        return;
+
         $this->readConfig();
 
         $this->ensureEnvExist();
@@ -66,7 +71,7 @@ class Deploy extends Command
 
                 $promises = [];
 
-                $servers = $this->config[$this->environment]['webServers']['ips'];
+                $servers = $this->config[$this->stage]['webServers']['ips'];
 
                 foreach ($servers as $server) {
                     $promises[] = $this->copyToServer($server);
@@ -154,7 +159,8 @@ class Deploy extends Command
 
         $data = [
             'appName'                  => $this->config['appName'],
-            'gitRepo'                  => $this->config['gitRepo'],
+            'gitRepo'                  => $this->config[$this->stage]['gitRepo'],
+            'gitBranch'                  => $this->config[$this->stage]['gitBranch'],
             'currentRelease'           => $this->releaseNumber,
             'id_github_apsonex'        => File::get($this->homeDir('.ssh/id_github_apsonex')),
             'id_github_apsonex_public' => File::get($this->homeDir('.ssh/id_github_apsonex.pub')),
@@ -227,11 +233,11 @@ class Deploy extends Command
 
     protected function ensureEnvExist()
     {
-        $this->environment = Arr::get($this->arguments(), 'environment');
+        $this->stage = Arr::get($this->arguments(), 'environment');
 
-        if ($this->environment) {
-            if (!isset($this->config[$this->environment])) {
-                $this->exitWithError("{$this->environment} configuration is missing in avi.json file");
+        if ($this->stage) {
+            if (!isset($this->config[$this->stage])) {
+                $this->exitWithError("{$this->stage} configuration is missing in avi.json file");
             }
         } else {
             $this->askEnvironment();
@@ -240,14 +246,14 @@ class Deploy extends Command
 
     protected function askEnvironment(): void
     {
-        $this->environment = $this->choice('Environment?', ['development', 'production']);
+        $this->stage = $this->choice('Environment?', ['development', 'production']);
 
-        if (!$this->environment) {
+        if (!$this->stage) {
             $this->askEnvironment();
         }
-        
-        if (!isset($this->config[$this->environment])) {
-            $this->exitWithError("{$this->environment} configuration is missing in avi.json file");
+
+        if (!isset($this->config[$this->stage])) {
+            $this->exitWithError("{$this->stage} configuration is missing in avi.json file");
         }
     }
 
