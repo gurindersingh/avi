@@ -25,14 +25,13 @@ class Deployment
     protected string $stage;
 
     protected array $bladeVars = [
-        'appName' => null,
-        'gitRepo' => null,
-        'gitBranch' => null,
-        'currentRelease' => null,
-        'id_github_apsonex' => null,
+        'appName'                  => null,
+        'gitRepo'                  => null,
+        'gitBranch'                => null,
+        'currentRelease'           => null,
+        'id_github_apsonex'        => null,
         'id_github_apsonex_public' => null,
-        'backup_count' => 3,
-        'composerGithubToken' => null,
+        'backup_count'             => 3,
     ];
 
     protected DeploymentBladeCompiler $bladeCompiler;
@@ -91,19 +90,21 @@ class Deployment
     protected function configBladeVars(): static
     {
         $this->bladeVars = [
-            'appName' => $this->config['appName'],
-            'phpVersion' => $this->config['phpVersion'],
-            'gitRepo' => $this->config['gitRepo'],
-            'gitBranch' => $this->config['gitBranch'],
-            'currentRelease' => $this->currentRelease,
-            'backupCount' => $this->config[$this->stage]['backupCount'],
-            'composerGithubToken' => $this->config[$this->stage]['githubToken'],
-            'sshKeyPath' => $this->getSshKeyPath(),
-            'sshPrivateKeyContent' => $this->getPrivateSshKeyContent(),
-            'githubToken' => $this->config[$this->stage]['githubToken'],
-            'compileVite' => $this->config[$this->stage]['compileVite'],
-            'compileViteSsr' => $this->config[$this->stage]['compileViteSsr'],
+            'appName'                     => $this->config['appName'],
+            'phpVersion'                  => $this->config['phpVersion'],
+            'gitRepo'                     => $this->config['gitRepo'],
+            'gitBranch'                   => $this->config['gitBranch'],
+            'currentRelease'              => $this->currentRelease,
+            'backupCount'                 => $this->config[$this->stage]['backupCount'],
+            'sshKeyPathToConnectToServer' => Arr::get($this->config[$this->stage], 'sshKeyPathToConnectToServer'),
+            'gitDeploySshKey'             => Arr::get($this->config[$this->stage], 'gitDeploySshKey'),
+            'gitDeploySshKeyContent'      => File::get(Arr::get($this->config[$this->stage], 'gitDeploySshKey')),
+            'githubToken'                 => $this->config[$this->stage]['githubToken'] ?? null,
+            'compileVite'                 => $this->config[$this->stage]['compileVite'],
+            'compileViteSsr'              => $this->config[$this->stage]['compileViteSsr'] ?? false,
+            'composerPostInstallScripts'  => implode("\n", $this->config[$this->stage]['composerPostInstallScripts'] ?? []),
         ];
+
         return $this;
     }
 
@@ -138,13 +139,15 @@ class Deployment
 
     protected function createCopyScriptToRemoteServerPromise($ip): PromiseInterface|Promise
     {
+        $sshFile = $this->config[$this->stage]['sshKeyPathToConnectToServer'];
+
         $commands = collect([
             // make deployment folder && copy .env file over
-            ['ssh', '-i', $this->getSshKeyPath(), 'ubuntu@' . $ip, "mkdir -p /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['scp', '-rp', '-i', $this->getSshKeyPath(), $this->getLocalEnvFile(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/.env"],
-            ['scp', '-rp', '-i', $this->getSshKeyPath(), $this->bladeCompiler->getLocalDeploymentFilePath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['scp', '-rp', '-i', $this->getSshKeyPath(), $this->bladeCompiler->getLocalDeploymentFileRunPath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['ssh', '-i', $this->getSshKeyPath(), 'ubuntu@' . $ip, "zsh /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/deployment-run.sh"],
+            ['ssh', '-i', $sshFile, 'ubuntu@' . $ip, "mkdir -p /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['scp', '-rp', '-i', $sshFile, $this->getLocalEnvFile(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/.env"],
+            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFilePath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFileRunPath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['ssh', '-i', $sshFile, 'ubuntu@' . $ip, "zsh /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/deployment-run.sh"],
         ]);
 
         $commands = $commands->map(fn($command) => implode(' ', $command))->implode(' && ');
@@ -159,19 +162,28 @@ class Deployment
 
         $process->start($loop);
 
-        $process->stdout->on('close', function () use ($loop, $deferred, &$startedAt) {
+        $process->stdout->on('close', function () use ($loop, $deferred, &$startedAt, $ip) {
             $loop->stop();
-            $deferred->resolve(microtime(true) - $startedAt);
+            $timeTook = microtime(true) - $startedAt;
+            $deferred->resolve($timeTook);
+            $this->command->info("{$ip} Finished in secs: " . $timeTook);
         });
 
         $process->on('exit', function ($exitCode, $termSignal) use ($loop, &$deferred, &$startedAt) {
             $loop->stop();
-            $deferred->resolve(microtime(true) - $startedAt);
+            $timeTook = microtime(true) - $startedAt;
+            $deferred->resolve($timeTook);
         });
 
-        $process->stdout->on('data', fn($output) => $this->command->info($ip . ': ' . $output));
+        $process->stdout->on('data', function ($output) use ($ip, $startedAt) {
+            render("<p class='bg-white text-green-700 p-2'>{$ip} Output</p>");
+            $this->command->info($output);
+        });
 
-        $process->stderr->on('data', fn($output) => $this->command->error($ip . ': ' . $output));
+        $process->stderr->on('data', function ($output) use ($ip) {
+            render("<p class='bg-red text-white p-2'>{$ip} Output</p>");
+            $this->command->error($output);
+        });
 
         $loop->run();
 
@@ -183,11 +195,6 @@ class Deployment
         return $this->bladeVars;
     }
 
-    protected function getSshKeyPath(): string
-    {
-        return Arr::get($this->config[$this->stage], 'sshKeyPath');
-    }
-
     public function getCurrentRelease(): int
     {
         return $this->currentRelease;
@@ -196,11 +203,6 @@ class Deployment
     protected function getLocalEnvFile(): string
     {
         return Path::currentDirectory(".env.{$this->stage}");
-    }
-
-    protected function getPrivateSshKeyContent(): string
-    {
-        return File::get($this->getSshKeyPath());
     }
 
 }

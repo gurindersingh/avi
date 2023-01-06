@@ -25,9 +25,13 @@ class DeploymentBladeCompiler
     {
         $this->cleanDir();
 
+        config(['view.compiled' => base_path('storage/framework/cache')]);
+
         $this->artifactsDir = $this->artifactsRootDir . '/' . $deployment->getCurrentRelease();
 
         File::ensureDirectoryExists($this->artifactsDir);
+
+
 
         $shellCompiled = Blade::make()->compile(
             base_path('stubs/deployment.sh'),

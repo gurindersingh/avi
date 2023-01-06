@@ -97,7 +97,9 @@ class Init extends Command
     {
         $this->askStage();
 
-        $this->askSshKey();
+        $this->askSshKeyToConnectToServer();
+
+        $this->askGithubDeployKey();
 
         $this->askWebserverIp();
 
@@ -106,9 +108,11 @@ class Init extends Command
         $this->askBackupCount();
 
         $this->askToRunViteBuild();
+
+        $this->askComposerPostInstallScripts();
     }
 
-    protected function askSshKey()
+    protected function askSshKeyToConnectToServer()
     {
         $availableSshKeys = [];
 
@@ -121,8 +125,26 @@ class Init extends Command
         terminal()->clear();
         render("<p class='bg-white text-green-700 p-2'>Provide ssh key to connect to remote server and to download repositories from github</p>");
 
-        if (!$this->config[$this->stage]['sshKeyPath'] = $this->choice('SSH key local path. e.g. /home/user/.ssh/id_rsa', $availableSshKeys, Arr::get($this->config, "{$this->stage}.sshKeyPath"))) {
-            $this->askSshKey();
+        if (!$this->config[$this->stage]['sshKeyPathToConnectToServer'] = $this->choice('SSH key local path to connect to server. e.g. /home/user/.ssh/id_rsa', $availableSshKeys, Arr::get($this->config, "{$this->stage}.sshKeyPathToConnectToServer"))) {
+            $this->askSshKeyToConnectToServer();
+        }
+    }
+
+    protected function askGithubDeployKey()
+    {
+        $availableSshKeys = [];
+
+        foreach (File::allFiles(Path::homeDir('.ssh')) as $file) {
+            if (Str::startsWith($file->getBasename(), 'id_') && !Str::endsWith($file->getBasename(), '.pub')) {
+                $availableSshKeys[] = $file->getPathname();
+            }
+        }
+
+        terminal()->clear();
+        render("<p class='bg-white text-green-700 p-2'>Provide ssh key to connect to remote server and to download repositories from github</p>");
+
+        if (!$this->config[$this->stage]['gitDeploySshKey'] = $this->choice('SSH Key path - Github deployment ssk key. e.g. /home/user/.ssh/id_rsa', $availableSshKeys, Arr::get($this->config, "{$this->stage}.gitDeploySshKey"))) {
+            $this->askGithubDeployKey();
         }
     }
 
@@ -131,9 +153,11 @@ class Init extends Command
         terminal()->clear();
         render("<p class='bg-white text-green-700 p-2'>Provide Github token for private repositories. Required to download repositories</p>");
 
-        if (!$this->config[$this->stage]['githubToken'] = $this->ask('Github token to pull repository?')) {
-            $this->askGithubToken();
-        }
+        $this->config[$this->stage]['githubToken'] = $this->ask('Github token to pull repository?');
+
+//        if (!$this->config[$this->stage]['githubToken'] = $this->ask('Github token to pull repository?')) {
+        //$this->askGithubToken(true);
+//        }
     }
 
     protected function askBackupCount()
@@ -177,7 +201,7 @@ class Init extends Command
             $this->askWebserverIp(function () {
                 render("<p class='bg-red-500 text-white p-2'>Provide valid IP address in valid format e.g. 123.123.123.123</p>");
             });
-        } else if ($ip && !collect($this->config[$this->stage]['webServers']['ips'])->contains($ip)) {
+        } else if ($ip && !collect(Arr::get($this->config[$this->stage], 'webServers.ips'))->contains($ip)) {
             $this->config[$this->stage]['webServers']['ips'][] = $ip;
         }
     }
@@ -187,7 +211,7 @@ class Init extends Command
         terminal()->clear();
         render("<p class='bg-white text-green-700 p-2'>Add stage to deploy. Usual stages are development, staging, or production</p>");
 
-        $this->stage = $this->choice("Choose stage?", ['production', 'development']);
+        $this->stage = $this->choice("Choose stage?", ['production', 'development', 'staging']);
 
         if (!$this->stage = Str::camel($this->stage)) {
             $this->askStage();
@@ -211,5 +235,21 @@ class Init extends Command
     protected function getConfigFilePath(): string
     {
         return getcwd() . '/avi.json';
+    }
+
+    protected function askComposerPostInstallScripts()
+    {
+        $this->config[$this->stage]['composerPostInstallScripts'] = Arr::get($this->config, "{$this->stage}.composerPostInstallScripts", [
+            'php artisan optimize:clear'
+        ]);
+
+        terminal()->clear();
+        render("<p class='bg-white text-green-700 p-2'>Add Composer post install scripts. e.g. php artisan optimize:clear</p>");
+
+        $scripts = $this->ask('Add comma seperated list of scripts you want to run after composer install?');
+
+        if ($scripts) {
+            $this->config[$this->stage]['composerPostInstallScripts'] = collect(explode(',', $scripts))->filter()->map(fn($str) => trim($str))->toArray();
+        }
     }
 }

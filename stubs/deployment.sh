@@ -12,8 +12,13 @@ mkdir -p /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 ################################################
 # Make SSH File to clone repo from github
 ################################################
+rm -rf ~/.ssh/known_hosts && \
+    ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
+	ssh-keyscan -H bitbucket.org >> ~/.ssh/known_hosts && \
+	ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
+
 cat > /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa << EOF
-{{ $sshPrivateKeyContent }}
+{{ $gitDeploySshKeyContent }}
 EOF
 chmod 400 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
 
@@ -23,7 +28,6 @@ chmod 400 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 GIT_SSH_COMMAND='ssh -i /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa -o IdentitiesOnly=yes' git clone {{ $gitRepo }} .
 git checkout {{ $gitBranch }}
-
 
 ################################################
 # Copy .env file
@@ -38,18 +42,20 @@ cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 mkdir -p ./storage/{app/public,logs,framework/cache,framework/sessions,framework/testing,framework/views}
 
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
-COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $githubToken }}"}}' composer install --optimize-autoloader --no-dev
+#COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $githubToken }}"}}' composer install --optimize-autoloader --no-dev
+composer install --optimize-autoloader --no-dev
 
 ################################################
 # install npm dependencies
 ################################################
-npm install
-npm run build
+pnpm install
+pnpm run build
 
 ################################################
 # Laravel Optimize
 ################################################
-php artisan optimize:clear
+#php artisan optimize:clear
+{{ $composerPostInstallScripts }}
 
 ################################################
 # Release New
@@ -97,3 +103,8 @@ ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
 
 cd /home/ubuntu/{{ $appName }}/deployments
 ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
+
+###################
+# Delete SSH file
+###################
+#rm -rf /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
