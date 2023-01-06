@@ -117,7 +117,7 @@ class Deployment
     protected function copyScriptToRemoteServer(): static
     {
         terminal()->clear();
-        render("<p class='bg-white text-green-700 p-2'>Copying depolyment scrips on remote servers</p>");
+        render("<p class='bg-white text-green-700 p-2'>Copying deployments scrips on remote servers</p>");
 
         $promises = [];
 
@@ -126,13 +126,11 @@ class Deployment
         }
 
         all($promises)
-            ->progress(function ($name) {
-                $this->command->info($name);
-            })
+            ->progress(fn($name) => $this->command->info($name))
             ->then(function ($data) {
-
+                //
             })
-            ->done(fn() => $this->command->info('Done'));
+            ->done(fn() => $this->deploymentFinished());
 
         return $this;
     }
@@ -205,4 +203,9 @@ class Deployment
         return Path::currentDirectory(".env.{$this->stage}");
     }
 
+    protected function deploymentFinished(): void
+    {
+        $this->command->info('Done');
+        $this->bladeCompiler->removeDir();
+    }
 }

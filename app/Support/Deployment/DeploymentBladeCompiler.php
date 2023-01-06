@@ -32,7 +32,6 @@ class DeploymentBladeCompiler
         File::ensureDirectoryExists($this->artifactsDir);
 
 
-
         $shellCompiled = Blade::make()->compile(
             base_path('stubs/deployment.sh'),
             $deployment->getBladeVars()
@@ -62,9 +61,14 @@ class DeploymentBladeCompiler
         return $this->localDeploymentFileRunPath;
     }
 
-    protected function cleanDir(): void
+    public function removeDir(): void
     {
         File::deleteDirectory(Path::currentDirectory('.avi'));
+    }
+
+    protected function cleanDir(): void
+    {
+        $this->removeDir();
 
         $this->artifactsRootDir = Path::currentDirectory('.avi');
     }
