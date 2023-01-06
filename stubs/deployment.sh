@@ -66,11 +66,6 @@ php artisan optimize
 ln -sfn /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }} /home/ubuntu/{{ $appName }}/current
 
 ################################################
-# Release New
-################################################
-php artisan migrate --force
-
-################################################
 # Reload SSR Server
 ################################################
 if [ -f /home/ubuntu/{{ $appName }}/current/bootstrap/ssr/ssr.mjs ]; then
