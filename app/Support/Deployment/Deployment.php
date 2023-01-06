@@ -174,13 +174,11 @@ class Deployment
         });
 
         $process->stdout->on('data', function ($output) use ($ip, $startedAt) {
-            render("<p class='bg-white text-green-700 p-2'>{$ip} Output</p>");
-            $this->command->info($output);
+            $this->command->info("{$ip} Output: " . PHP_EOL . $output);
         });
 
         $process->stderr->on('data', function ($output) use ($ip) {
-            render("<p class='bg-red text-white p-2'>{$ip} Output</p>");
-            $this->command->error($output);
+            $this->command->error("{$ip} Error Output: " . PHP_EOL . $output);
         });
 
         $loop->run();
