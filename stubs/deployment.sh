@@ -2,6 +2,27 @@
 
 CURRENT_RELEASE="{{ $currentRelease }}"
 
+GREEN='\033[0;32m'
+echo_green() {
+    echo -e "${GREEN}${1}${NOCOLOR}"
+}
+
+BLUE='\033[0;34m'
+echo_blue() {
+    echo -e "${BLUE}${1}${NOCOLOR}"
+}
+
+PURPLE='\033[0;35m'
+echo_purple() {
+    echo -e "${PURPLE}${1}${NOCOLOR}"
+}
+
+WHITE='\033[1;37m'
+echo_white() {
+    echo -e "${WHITE}${1}${NOCOLOR}"
+}
+
+
 ################################################
 # Make required Directories
 ################################################
@@ -54,16 +75,31 @@ pnpm run build
 ################################################
 # Laravel Optimize
 ################################################
-#php artisan optimize:clear
+echo_white "Running scripts after composer post install"
 {{ $composerPostInstallScripts }}
+#echo_white "Clearing Optimization..."
+#php artisan optimize:clear
+#echo_white "Migrating..."
+#php artisan migrate --force
+#echo_white "Seeding production..."
+#php artisan fm:seed-production
+#echo_white "Seeded..."
 
 ################################################
 # Release New
 ################################################
+echo_white "Releasing..."
 rm -rf ./storage
 ln -sfn /home/ubuntu/{{ $appName }}/storage .
-php artisan optimize
 ln -sfn /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }} /home/ubuntu/{{ $appName }}/current
+
+################################################
+# Post Release Scripts
+################################################
+echo_white "Running post release scripts"
+{{ $postReleaseScripts }}
+#echo_white "Optimizing after post release..."
+#php artisan optimize
 
 ################################################
 # Reload SSR Server
