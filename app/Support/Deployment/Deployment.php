@@ -89,7 +89,7 @@ class Deployment
             'appName'                     => $this->config['appName'],
             'phpVersion'                  => $this->config['phpVersion'],
             'gitRepo'                     => $this->config['gitRepo'],
-            'gitBranch'                   => $this->config['gitBranch'],
+            'gitBranch'                   => $this->config[$this->stage]['gitBranch'],
             'currentRelease'              => $this->currentRelease,
             'backupCount'                 => $this->config[$this->stage]['backupCount'],
             'sshKeyPathToConnectToServer' => Arr::get($this->config[$this->stage], 'sshKeyPathToConnectToServer'),

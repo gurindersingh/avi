@@ -53,8 +53,6 @@ class Init extends Command
         $this->askPhpVersion();
 
         $this->askGitRepo();
-
-        $this->askGitBranch();
     }
 
     protected function askAppName()
@@ -84,18 +82,11 @@ class Init extends Command
         }
     }
 
-    protected function askGitBranch()
-    {
-        terminal()->clear();
-        render("<p class='bg-white text-green-700 p-2'>Git branch to deploy</p>");
-        if (!$this->config['gitBranch'] = $this->ask('Git branch to deploy ? ', $this->config['gitBranch'] ?? null)) {
-            $this->askGitBranch();
-        }
-    }
-
     protected function askStageSpecificConfig()
     {
         $this->askStage();
+
+        $this->askGitBranch();
 
         $this->askSshKeyToConnectToServer();
 
@@ -110,6 +101,15 @@ class Init extends Command
         $this->askToRunViteBuild();
 
         $this->askComposerPostInstallScripts();
+    }
+
+    protected function askGitBranch()
+    {
+        terminal()->clear();
+        render("<p class='bg-white text-green-700 p-2'>Git branch to deploy</p>");
+        if (!$this->config[$this->stage]['gitBranch'] = $this->ask('Git branch to deploy ? ', $this->config[$this->stage]['gitBranch'] ?? null)) {
+            $this->askGitBranch();
+        }
     }
 
     protected function askSshKeyToConnectToServer()
