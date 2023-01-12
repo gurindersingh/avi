@@ -139,3 +139,5 @@ ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
 # Delete SSH file
 ###################
 #rm -rf /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+
+echo "Deployment finished";
