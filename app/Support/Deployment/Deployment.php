@@ -3,16 +3,12 @@
 namespace App\Support\Deployment;
 
 use App\Support\Path;
+use Spatie\Fork\Fork;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
-use React\ChildProcess\Process;
-use React\EventLoop\Loop;
-use React\Promise\Deferred;
-use React\Promise\Promise;
-use React\Promise\PromiseInterface;
 use function Termwind\{render, terminal};
-use function React\Promise\all;
 
 class Deployment
 {
@@ -120,23 +116,27 @@ class Deployment
         terminal()->clear();
         render("<p class='bg-white text-green-700 p-2'>Copying deployments scrips on remote servers</p>");
 
-        $promises = [];
+        $closures = collect(Arr::get($this->config[$this->stage], 'webServers.ips'))->map(function ($ip) {
+            return fn() => $this->createCopyScriptToRemoteServerPromise($ip);
+        })->toArray();
 
-        foreach (Arr::get($this->config[$this->stage], 'webServers.ips') as $ip) {
-            $promises[] = $this->createCopyScriptToRemoteServerPromise($ip);
-        }
+        $startedAt = microtime(true);
 
-        all($promises)
-            ->progress(fn($name) => $this->command->info($name))
-            ->then(function ($data) {
-                //
-            })
-            ->done(fn() => $this->deploymentFinished());
+        Fork::new()
+            ->after(
+                parent: function () use ($startedAt) {
+                    $this->command->comment('Done in secs: ' . microtime(true) - $startedAt);
+                    $this->deploymentFinished();
+                }
+            )
+            ->run(
+                ...$closures
+            );
 
         return $this;
     }
 
-    protected function createCopyScriptToRemoteServerPromise($ip): PromiseInterface|Promise
+    public function createCopyScriptToRemoteServerPromise($ip): string
     {
         $sshFile = $this->config[$this->stage]['sshKeyPathToConnectToServer'];
 
@@ -151,40 +151,20 @@ class Deployment
 
         $commands = $commands->map(fn($command) => implode(' ', $command))->implode(' && ');
 
-        $startedAt = microtime(true);
 
-        $deferred = new Deferred();
+        $process = Process::fromShellCommandline($commands, Path::currentDirectory());
 
-        $loop = Loop::get();
-
-        $process = new Process($commands, Path::currentDirectory());
-
-        $process->start($loop);
-
-        $process->stdout->on('close', function () use ($loop, $deferred, &$startedAt, $ip) {
-            $loop->stop();
-            $timeTook = microtime(true) - $startedAt;
-            $deferred->resolve($timeTook);
-            $this->command->info("{$ip} Finished in secs: " . $timeTook);
+        $process->start(function ($type, $buffer) use ($ip) {
+            if (Process::ERR === $type) {
+                $this->command->error($ip . ':ERR: ' . $buffer);
+            } else {
+                $this->command->info($ip . ':OUT: ' . $buffer);
+            }
         });
 
-        $process->on('exit', function ($exitCode, $termSignal) use ($loop, &$deferred, &$startedAt) {
-            $loop->stop();
-            $timeTook = microtime(true) - $startedAt;
-            $deferred->resolve($timeTook);
-        });
+        $process->wait();
 
-        $process->stdout->on('data', function ($output) use ($ip, $startedAt) {
-            $this->command->info("{$ip} Output: " . PHP_EOL . $output);
-        });
-
-        $process->stderr->on('data', function ($output) use ($ip) {
-            $this->command->error("{$ip} Error Output: " . PHP_EOL . $output);
-        });
-
-        $loop->run();
-
-        return $deferred->promise();
+        return $process->getOutput();
     }
 
     public function getBladeVars(): array
@@ -204,7 +184,6 @@ class Deployment
 
     protected function deploymentFinished(): void
     {
-        $this->command->info('Done');
         $this->bladeCompiler->removeDir();
     }
 }
