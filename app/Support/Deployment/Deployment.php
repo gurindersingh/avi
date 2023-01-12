@@ -124,14 +124,11 @@ class Deployment
 
         Fork::new()
             ->after(
-                parent: function () use ($startedAt) {
-                    $this->command->comment('Done in secs: ' . microtime(true) - $startedAt);
-                    $this->deploymentFinished();
-                }
+                parent: fn() => $this->deploymentFinished()
             )
-            ->run(
-                ...$closures
-            );
+            ->run(...$closures);
+
+        $this->command->comment('Done in secs: ' . microtime(true) - $startedAt);
 
         return $this;
     }
