@@ -28,7 +28,7 @@ Add `.avi` & `avi.json` in .gitignore file to exclude from github
 
 ## Add scripts to run after composer install
 In avi.json
-```json
+```sh
 {
     ...,
     "staging": {
@@ -44,7 +44,7 @@ In avi.json
 
 ## Add scripts to run after new release is active
 In avi.json
-```json
+```sh
 {
     ...,
     "production": {
