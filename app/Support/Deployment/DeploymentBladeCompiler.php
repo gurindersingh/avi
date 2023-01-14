@@ -25,12 +25,11 @@ class DeploymentBladeCompiler
     {
         $this->cleanDir();
 
-        config(['view.compiled' => base_path('storage/framework/cache')]);
+        config(['view.compiled' => Path::getBladeCachePath()]);
 
         $this->artifactsDir = $this->artifactsRootDir . '/' . $deployment->getCurrentRelease();
 
         File::ensureDirectoryExists($this->artifactsDir);
-
 
         $shellCompiled = Blade::make()->compile(
             base_path('stubs/deployment.sh'),
@@ -71,6 +70,7 @@ class DeploymentBladeCompiler
         $this->removeDir();
 
         $this->artifactsRootDir = Path::currentDirectory('.avi');
-    }
 
+        Path::getBladeCachePath();
+    }
 }

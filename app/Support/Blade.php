@@ -30,8 +30,10 @@ class Blade
     protected function setConfig()
     {
         config()->set('view.paths', [realpath(__DIR__ . '/../../stubs/stubs')]);
-        config()->set('view.compiled', realpath(__DIR__ . '/../../stubs/cache'));
-        config()->set('cache.stores.file.path', realpath(__DIR__ . '/../../stubs/cache'));
+        config()->set('view.compiled', Path::getBladeCachePath());
+        //config()->set('view.compiled', realpath(__DIR__ . '/../../stubs/cache'));
+        //config()->set('cache.stores.file.path', realpath(__DIR__ . '/../../stubs/cache'));
+        config()->set('cache.stores.file.path', Path::getBladeCachePath());
         config()->set('cache.driver', 'file');
     }
 

@@ -130,6 +130,8 @@ class Deployment
 
         $this->command->comment('Done in secs: ' . microtime(true) - $startedAt);
 
+        $this->clean();
+
         return $this;
     }
 
@@ -182,5 +184,10 @@ class Deployment
     protected function deploymentFinished(): void
     {
         $this->bladeCompiler->removeDir();
+    }
+
+    protected function clean(): void
+    {
+        File::deleteDirectory(Path::currentDirectory('.avi'));
     }
 }

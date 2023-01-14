@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\File;
+
 class Path
 {
 
@@ -15,5 +17,14 @@ class Path
         $path = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'];
 
         return $append ? "{$path}/{$append}" : $path;
+    }
+
+    public static function getBladeCachePath(): string
+    {
+        File::ensureDirectoryExists(
+            Path::currentDirectory('.avi/bladeCache')
+        );
+
+        return Path::currentDirectory('.avi/blade-cache');
     }
 }
