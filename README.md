@@ -25,3 +25,33 @@ Make sure that you have config available for deployment environment in avi.json 
 
 ## Exclude from .git
 Add `.avi` & `avi.json` in .gitignore file to exclude from github 
+
+## Add scripts to run after composer install
+In avi.json
+```json
+{
+    ...,
+    "staging": {
+        ...,
+        "composerPostInstallScripts" : [
+            "php artisan optimize:clear",
+            "php artisan migrate --force",
+            "php artisan fm:seed-production"
+        ]
+    }
+}
+```
+
+## Add scripts to run after new release is active
+In avi.json
+```json
+{
+    ...,
+    "production": {
+        ...,
+        "postReleaseScripts" : [
+            "php artisan optimize"
+        ]
+    }
+}
+```
