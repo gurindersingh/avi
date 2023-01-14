@@ -5,7 +5,7 @@ A simple composer package to deploy Laravel web app to remote Ubuntu servers.
 ## Install avi deployment tool
 Install avi command line tool
 ```sh
-composer require global gurindersingh/avi
+composer global require gurindersingh/avi
 ```
 You must have `avi` command line tool available now.
 
