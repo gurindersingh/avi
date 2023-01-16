@@ -130,14 +130,13 @@ fi
 # Cleanup old releases
 ################################################
 cd /home/ubuntu/{{ $appName }}/releases
+echo '------ old releases deleting'
 ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
+echo '------ old releases deleted'
 
 cd /home/ubuntu/{{ $appName }}/deployments
+echo '------ old deployments deleting'
 ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
-
-###################
-# Delete SSH file
-###################
-#rm -rf /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+echo '------ old deployments deleted'
 
 echo "Deployment finished";
