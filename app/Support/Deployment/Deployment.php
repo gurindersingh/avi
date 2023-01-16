@@ -39,12 +39,16 @@ class Deployment
         $self = new self();
         $self->currentRelease = now()->getTimestamp();
         $self->command = $command;
+
+        $self->clean();
+
         $self->readConfig()
             ->ensureConfigExist()
             ->ensureEnvFileExist()
             ->configBladeVars()
             ->compileBladeTemplate()
             ->copyScriptToRemoteServer();
+
         return $self;
     }
 
@@ -130,8 +134,6 @@ class Deployment
 
         $this->command->comment('Done in secs: ' . microtime(true) - $startedAt);
 
-        $this->clean();
-
         return $this;
     }
 
@@ -152,6 +154,8 @@ class Deployment
 
 
         $process = Process::fromShellCommandline($commands, Path::currentDirectory());
+
+        $process->setTimeout(4000);
 
         $process->start(function ($type, $buffer) use ($ip) {
             if (Process::ERR === $type) {
