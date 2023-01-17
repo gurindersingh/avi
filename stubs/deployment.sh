@@ -129,14 +129,41 @@ fi
 ################################################
 # Cleanup old releases
 ################################################
-cd /home/ubuntu/{{ $appName }}/releases
-echo '------ old releases deleting'
-ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
-echo '------ old releases deleted'
+#cd /home/ubuntu/{{ $appName }}/releases
+#echo '------ old releases deleting'
+#ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
 
+echo_blue "--- Removing old releases ---"
+cd /home/ubuntu/{{ $appName }}/releases
+PWD=$(pwd)
+for OUTPUT in $(ls -A | sort  | head -n -3)
+do
+    if [ -d "$PWD/$OUTPUT" ]
+    then
+        echo "Removing release: $OUTPUT "
+        rm -rf "$PWD/$OUTPUT"
+    else
+        echo "Release Directory does not exit: $PWD/$OUTPUT"
+    fi
+done
+
+echo_blue "--- Removing old deployments ---"
 cd /home/ubuntu/{{ $appName }}/deployments
-echo '------ old deployments deleting'
-ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
-echo '------ old deployments deleted'
+PWD=$(pwd)
+for OUTPUT in $(ls -A | sort  | head -n -3)
+do
+    if [ -d "$PWD/$OUTPUT" ]
+    then
+        echo "Removing deployments: $OUTPUT "
+        rm -rf "$PWD/$OUTPUT"
+    else
+        echo "Deployment Directory does not exit: $PWD/$OUTPUT"
+    fi
+done
+
+#cd /home/ubuntu/{{ $appName }}/deployments
+#echo '------ old deployments deleting'
+#ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
+#echo '------ old deployments deleted'
 
 echo "Deployment finished";

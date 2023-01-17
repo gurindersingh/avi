@@ -140,19 +140,20 @@ class Deployment
     public function createCopyScriptToRemoteServerPromise($ip): string
     {
         $sshFile = $this->config[$this->stage]['sshKeyPathToConnectToServer'];
+        $user = $this->config[$this->stage]['user'] ?? 'ubuntu';
+        $deployPath = $this->config[$this->stage]['deploy_path'] ?? '/home/ubuntu';
 
         $commands = collect([
             // make deployment folder && copy .env file over
-            ['ssh', '-i', $sshFile, 'ubuntu@' . $ip, "mkdir -p /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['scp', '-rp', '-i', $sshFile, $this->getLocalEnvFile(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/.env"],
-            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFilePath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFileRunPath(), "ubuntu@{$ip}:/home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}"],
-            ['ssh', '-i', $sshFile, 'ubuntu@' . $ip, "zsh /home/ubuntu/{$this->config['appName']}/deployments/{$this->currentRelease}/deployment-run.sh"],
+            ['ssh', '-i', $sshFile, $user . '@' . $ip, "mkdir -p /{$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['scp', '-rp', '-i', $sshFile, $this->getLocalEnvFile(), $user . "@{$ip}:{$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}/.env"],
+            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFilePath(), $user . "@{$ip}:{$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['scp', '-rp', '-i', $sshFile, $this->bladeCompiler->getLocalDeploymentFileRunPath(), $user . "@{$ip}:{$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}"],
+            ['ssh', '-i', $sshFile, $user . '@' . $ip, "zsh {$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}/deployment-run.sh"],
         ]);
 
         $commands = $commands->map(fn($command) => implode(' ', $command))->implode(' && ');
-
-
+        
         $process = Process::fromShellCommandline($commands, Path::currentDirectory());
 
         $process->setTimeout(4000);
