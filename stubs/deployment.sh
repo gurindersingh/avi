@@ -136,7 +136,7 @@ fi
 echo_blue "--- Removing old releases ---"
 cd /home/ubuntu/{{ $appName }}/releases
 PWD=$(pwd)
-for OUTPUT in $(ls -A | sort  | head -n -3)
+for OUTPUT in $(ls -A | sort  | head -n -{{ $backupCount }})
 do
     if [ -d "$PWD/$OUTPUT" ]
     then
@@ -150,7 +150,7 @@ done
 echo_blue "--- Removing old deployments ---"
 cd /home/ubuntu/{{ $appName }}/deployments
 PWD=$(pwd)
-for OUTPUT in $(ls -A | sort  | head -n -3)
+for OUTPUT in $(ls -A | sort  | head -n -{{ $backupCount }})
 do
     if [ -d "$PWD/$OUTPUT" ]
     then
@@ -166,4 +166,4 @@ done
 #ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
 #echo '------ old deployments deleted'
 
-echo "Deployment finished";
+echo "Deployment finished. Current release id# {{ $currentRelease }}";
