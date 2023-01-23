@@ -58,7 +58,14 @@ class Deployment
             $this->exitWithError('avi.json not found. Please run avi deploy:init');
         }
 
-        $this->config = json_decode(File::get(Path::currentDirectory('avi.json')), true);
+        $config = json_decode(File::get(Path::currentDirectory('avi.json')), true);
+
+        if(json_last_error() > 0) {
+            $this->command->error('Invalid avi.json file. ' . json_last_error_msg());
+            exit(1);
+        }
+
+        $this->config = $config;
 
         if (!Arr::get($this->config, 'gitRepo')) {
             $this->exitWithError('Git repo is not defined in avi.json');
@@ -93,13 +100,15 @@ class Deployment
             'appName'                     => $this->config['appName'],
             'phpVersion'                  => $this->config['phpVersion'],
             'gitRepo'                     => $this->config['gitRepo'],
+            'gitRepoAbsoluteAddress'     => str($this->config['gitRepo'])->afterLast(':')->toString(),
             'gitBranch'                   => $this->config[$this->stage]['gitBranch'],
             'currentRelease'              => $this->currentRelease,
             'backupCount'                 => $this->config[$this->stage]['backupCount'],
             'sshKeyPathToConnectToServer' => Arr::get($this->config[$this->stage], 'sshKeyPathToConnectToServer'),
             'gitDeploySshKey'             => Arr::get($this->config[$this->stage], 'gitDeploySshKey'),
-            'gitDeploySshKeyContent'      => File::get(Arr::get($this->config[$this->stage], 'gitDeploySshKey')),
+            'gitDeploySshKeyContent'      => Arr::has($this->config[$this->stage], 'gitDeploySshKey') ? File::get(Arr::get($this->config[$this->stage], 'gitDeploySshKey')) : null,
             'githubToken'                 => $this->config[$this->stage]['githubToken'] ?? null,
+            'composerAuthToken'                 => $this->config[$this->stage]['composerAuthToken'] ?? null,
             'compileVite'                 => $this->config[$this->stage]['compileVite'],
             'compileViteSsr'              => $this->config[$this->stage]['compileViteSsr'] ?? false,
             'composerPostInstallScripts'  => implode("\n", $this->config[$this->stage]['composerPostInstallScripts'] ?? []),
@@ -153,7 +162,7 @@ class Deployment
         ]);
 
         $commands = $commands->map(fn($command) => implode(' ', $command))->implode(' && ');
-        
+
         $process = Process::fromShellCommandline($commands, Path::currentDirectory());
 
         $process->setTimeout(4000);

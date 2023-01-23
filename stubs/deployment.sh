@@ -38,16 +38,34 @@ rm -rf ~/.ssh/known_hosts && \
 	ssh-keyscan -H bitbucket.org >> ~/.ssh/known_hosts && \
 	ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
 
+@if($gitDeploySshKeyContent)
 cat > /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa << EOF
 {{ $gitDeploySshKeyContent }}
 EOF
 chmod 400 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+rm -rf /home/ubuntu/.ssh/config
+cat > /home/ubuntu/.ssh/config <<EOF
+Host github.com
+	User apsonex
+	Hostname github.com
+	PreferredAuthentications publickey
+	IdentityFile /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+EOF
+@endif
 
 ################################################
 # Clone git repo in current release folder
 ################################################
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
+@if($gitDeploySshKeyContent)
 GIT_SSH_COMMAND='ssh -i /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa -o IdentitiesOnly=yes' git clone {{ $gitRepo }} .
+@elseif($githubToken)
+COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $githubToken }}"}}' \
+    GH_TOKEN="{{ $githubToken }}" \
+    gh repo clone {{ $gitRepo }} .
+@else
+git clone {{ $gitRepo }} .
+@endif
 git checkout {{ $gitBranch }}
 
 ################################################
@@ -63,8 +81,11 @@ cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 mkdir -p ./storage/{app/public,logs,framework/cache,framework/sessions,framework/testing,framework/views}
 
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
-#COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $githubToken }}"}}' composer install --optimize-autoloader --no-dev
+@if(isset($composerAuthToken))
+COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $composerAuthToken }}"}}' composer install --optimize-autoloader --no-dev
+@else
 composer install --optimize-autoloader --no-dev
+@endif
 
 ################################################
 # install npm dependencies
@@ -95,7 +116,7 @@ ln -sfn /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }} /home/ubuntu/
 
 ################################################
 # Post Release Scripts
-################################################
+################################################O
 echo_white "Running post release scripts"
 {{ $postReleaseScripts }}
 #echo_white "Optimizing after post release..."
