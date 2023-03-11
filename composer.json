@@ -1,7 +1,13 @@
 {
     "name": "gurindersingh/avi",
     "description": "Deploy simple laravel app",
-    "keywords": ["framework", "laravel", "deploy", "console", "cli"],
+    "keywords": [
+        "framework",
+        "laravel",
+        "deploy",
+        "console",
+        "cli"
+    ],
     "homepage": "https://github.com/gurindersingh/avi",
     "type": "project",
     "license": "MIT",
@@ -17,7 +23,7 @@
     ],
     "require": {
         "php": "^8.0",
-        "laravel-zero/framework": "^9.0",
+        "laravel-zero/framework": "^9.0|^10.0",
         "nunomaduro/termwind": "^1.3",
         "protonemedia/laravel-blade-on-demand": "^1.5",
         "react/child-process": "^0.6.4",
@@ -56,5 +62,7 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "bin": ["builds/avi"]
+    "bin": [
+        "builds/avi"
+    ]
 }

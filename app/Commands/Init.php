@@ -101,6 +101,8 @@ class Init extends Command
         $this->askToRunViteBuild();
 
         $this->askComposerPostInstallScripts();
+
+        $this->askPostReleaseScripts();
     }
 
     protected function askGitBranch()
@@ -143,8 +145,18 @@ class Init extends Command
         terminal()->clear();
         render("<p class='bg-white text-green-700 p-2'>Provide ssh key to connect to remote server and to download repositories from github</p>");
 
-        if (!$this->config[$this->stage]['gitDeploySshKey'] = $this->choice('SSH Key path - Github deployment ssk key. e.g. /home/user/.ssh/id_rsa', $availableSshKeys, Arr::get($this->config, "{$this->stage}.gitDeploySshKey"))) {
-            $this->askGithubDeployKey();
+        // if (!$this->config[$this->stage]['gitDeploySshKey'] = $this->choice('SSH Key path - Github deployment ssk key. e.g. /home/user/.ssh/id_rsa', $availableSshKeys, Arr::get($this->config, "{$this->stage}.gitDeploySshKey"))) {
+        //     $this->askGithubDeployKey();
+        // }
+
+        $gitDeploySshKey = $this->choice(
+            'SSH Key path - Github deployment ssk key. e.g. /home/user/.ssh/id_rsa', 
+            null, 
+            Arr::get($this->config, "{$this->stage}.gitDeploySshKey")
+        );
+        
+        if($gitDeploySshKey) {
+            $this->config[$this->stage]['gitDeploySshKey'] = $gitDeploySshKey;
         }
     }
 
@@ -250,6 +262,22 @@ class Init extends Command
 
         if ($scripts) {
             $this->config[$this->stage]['composerPostInstallScripts'] = collect(explode(',', $scripts))->filter()->map(fn($str) => trim($str))->toArray();
+        }
+    }
+    
+    protected function askPostReleaseScripts()
+    {
+        $this->config[$this->stage]['postReleaseScripts'] = Arr::get($this->config, "{$this->stage}.postReleaseScripts", [
+            'php artisan optimize'
+        ]);
+
+        terminal()->clear();
+        render("<p class='bg-white text-green-700 p-2'>Add post release scripts. e.g. php artisan optimize</p>");
+
+        $scripts = $this->ask('Add comma seperated list of scripts you want to run after new release?');
+
+        if ($scripts) {
+            $this->config[$this->stage]['postReleaseScripts'] = collect(explode(',', $scripts))->filter()->map(fn($str) => trim($str))->toArray();
         }
     }
 }
