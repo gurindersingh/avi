@@ -46,7 +46,7 @@ chmod 400 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
 rm -rf /home/ubuntu/.ssh/config
 cat > /home/ubuntu/.ssh/config <<EOF
 Host github.com
-	User apsonex
+	User {{ $githubUser }}
 	Hostname github.com
 	PreferredAuthentications publickey
 	IdentityFile /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
@@ -56,6 +56,10 @@ EOF
 ################################################
 # Clone git repo in current release folder
 ################################################
+echo_blue "------------------------------------------"
+echo_blue "Cloning Repo"
+echo_blue "------------------------------------------"
+
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 @if($gitDeploySshKeyContent)
 GIT_SSH_COMMAND='ssh -i /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa -o IdentitiesOnly=yes' git clone {{ $gitRepo }} .
@@ -82,21 +86,39 @@ mkdir -p ./storage/{app/public,logs,framework/cache,framework/sessions,framework
 
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 @if(isset($composerAuthToken))
+echo_white ""
+echo_blue "------------------------------------------"
+echo_blue "Installing composer: COMPOSER_AUTH='{\"github-oauth\": {\"github.com\": \"{{ $composerAuthToken }}\"}}' {{ $composerInstallCommand }}"
+echo_blue "------------------------------------------"
+echo_white ""
 COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $composerAuthToken }}"}}' {{ $composerInstallCommand }}
 @else
-composer install --optimize-autoloader --no-dev
+echo_blue "------------------------------------------"
+echo_blue "Installing composer: {{ $composerInstallCommand }}"
+echo_blue "------------------------------------------"
+echo_white ""
+{{ $composerInstallCommand }}
 @endif
 
 ################################################
 # install npm dependencies
 ################################################
+@if($compileVite)
+echo_blue "------------------------------------------"
+echo_blue "Installing node packages with pnpm"
+echo_blue "------------------------------------------"
+echo_white ""
 pnpm install
 pnpm run build
+@endif
 
 ################################################
 # Laravel Optimize
 ################################################
-echo_white "Running scripts after composer post install"
+echo_blue "------------------------------------------"
+echo_blue "Running scripts after composer post install"
+echo_blue "------------------------------------------"
+echo_white ""
 {{ $composerPostInstallScripts }}
 #echo_white "Clearing Optimization..."
 #php artisan optimize:clear
@@ -109,7 +131,10 @@ echo_white "Running scripts after composer post install"
 ################################################
 # Release New
 ################################################
-echo_white "Releasing..."
+echo_blue "------------------------------------------"
+echo_blue "Releasing"
+echo_blue "------------------------------------------"
+echo_white ""
 rm -rf ./storage
 ln -sfn /home/ubuntu/{{ $appName }}/storage .
 ln -sfn /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }} /home/ubuntu/{{ $appName }}/current
@@ -117,7 +142,10 @@ ln -sfn /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }} /home/ubuntu/
 ################################################
 # Post Release Scripts
 ################################################O
-echo_white "Running post release scripts"
+echo_blue "------------------------------------------"
+echo_blue "Running post release scripts"
+echo_blue "------------------------------------------"
+echo_white ""
 {{ $postReleaseScripts }}
 #echo_white "Optimizing after post release..."
 #php artisan optimize
@@ -125,6 +153,11 @@ echo_white "Running post release scripts"
 ################################################
 # Reload SSR Server
 ################################################
+@if($compileVite && $compileViteSsr)
+echo_blue "------------------------------------------"
+echo_blue "Reload SSR Server"
+echo_blue "------------------------------------------"
+echo_white ""
 if [ -f /home/ubuntu/{{ $appName }}/current/bootstrap/ssr/ssr.mjs ]; then
     sudo systemctl status {{ $appName }}-ssr;
     if [ $? -eq 0 ]; then;
@@ -136,10 +169,15 @@ if [ -f /home/ubuntu/{{ $appName }}/current/bootstrap/ssr/ssr.mjs ]; then
     fi;
 else
 fi
+@endif
 
 ################################################
 # Reload Services - Supervisor & PHP FPM
 ################################################
+echo_blue "------------------------------------------"
+echo_blue "Reload Services - Supervisor & PHP FPM"
+echo_blue "------------------------------------------"
+echo_white ""
 sudo service php{{ $phpVersion }}-fpm reload
 if sudo supervisorctl version 2>/dev/null; then
     sudo supervisorctl reread
@@ -153,8 +191,10 @@ fi
 #cd /home/ubuntu/{{ $appName }}/releases
 #echo '------ old releases deleting'
 #ls -A | sort  | head -n -{{ $backupCount }}  | xargs rm -rf
-
-echo_blue "--- Removing old releases ---"
+echo_blue "------------------------------------------"
+echo_blue "Removing old releases"
+echo_blue "------------------------------------------"
+echo_white ""
 cd /home/ubuntu/{{ $appName }}/releases
 PWD=$(pwd)
 for OUTPUT in $(ls -A | sort  | head -n -{{ $backupCount }})
@@ -168,7 +208,10 @@ do
     fi
 done
 
-echo_blue "--- Removing old deployments ---"
+echo_blue "------------------------------------------"
+echo_blue "Removing old deployments"
+echo_blue "------------------------------------------"
+echo_white ""
 cd /home/ubuntu/{{ $appName }}/deployments
 PWD=$(pwd)
 for OUTPUT in $(ls -A | sort  | head -n -{{ $backupCount }})

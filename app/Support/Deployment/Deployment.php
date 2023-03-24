@@ -100,6 +100,7 @@ class Deployment
             'appName'                     => $this->config['appName'],
             'phpVersion'                  => $this->config['phpVersion'],
             'gitRepo'                     => $this->config['gitRepo'],
+            'githubUser'                  => $this->config['githubUser'],
             'gitRepoAbsoluteAddress'      => str($this->config['gitRepo'])->afterLast(':')->toString(),
             'gitBranch'                   => $this->config[$this->stage]['gitBranch'],
             'currentRelease'              => $this->currentRelease,
