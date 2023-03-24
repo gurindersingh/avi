@@ -60,7 +60,7 @@ class Deployment
 
         $config = json_decode(File::get(Path::currentDirectory('avi.json')), true);
 
-        if(json_last_error() > 0) {
+        if (json_last_error() > 0) {
             $this->command->error('Invalid avi.json file. ' . json_last_error_msg());
             exit(1);
         }
@@ -100,7 +100,7 @@ class Deployment
             'appName'                     => $this->config['appName'],
             'phpVersion'                  => $this->config['phpVersion'],
             'gitRepo'                     => $this->config['gitRepo'],
-            'gitRepoAbsoluteAddress'     => str($this->config['gitRepo'])->afterLast(':')->toString(),
+            'gitRepoAbsoluteAddress'      => str($this->config['gitRepo'])->afterLast(':')->toString(),
             'gitBranch'                   => $this->config[$this->stage]['gitBranch'],
             'currentRelease'              => $this->currentRelease,
             'backupCount'                 => $this->config[$this->stage]['backupCount'],
@@ -111,11 +111,22 @@ class Deployment
             'composerAuthToken'           => $this->config[$this->stage]['composerAuthToken'] ?? null,
             'compileVite'                 => $this->config[$this->stage]['compileVite'] ?? false,
             'compileViteSsr'              => $this->config[$this->stage]['compileViteSsr'] ?? false,
+            'composerInstallCommand'      => $this->getComposerInstallCommand(),
             'composerPostInstallScripts'  => implode("\n", $this->config[$this->stage]['composerPostInstallScripts'] ?? []),
             'postReleaseScripts'          => implode("\n", $this->config[$this->stage]['postReleaseScripts'] ?? []),
         ];
 
         return $this;
+    }
+
+    protected function getComposerInstallCommand(): string
+    {
+        return Arr::toCssClasses([
+            'composer install',
+            '--optimize-autoloader' => $this->config[$this->stage]['composerOptimizeAutoloader'] ?? false,
+            '--no-dev'              => $this->config[$this->stage]['composerNoDev'] ?? false,
+            '--no-scripts'          => $this->config[$this->stage]['composerNoScripts'] ?? false
+        ]);
     }
 
     protected function compileBladeTemplate(): static

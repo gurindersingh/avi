@@ -82,7 +82,7 @@ mkdir -p ./storage/{app/public,logs,framework/cache,framework/sessions,framework
 
 cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 @if(isset($composerAuthToken))
-COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $composerAuthToken }}"}}' composer install --optimize-autoloader --no-dev
+COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $composerAuthToken }}"}}' {{ $composerInstallCommand }}
 @else
 composer install --optimize-autoloader --no-dev
 @endif
