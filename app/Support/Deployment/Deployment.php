@@ -114,6 +114,7 @@ class Deployment
             'compileViteSsr'              => $this->config[$this->stage]['compileViteSsr'] ?? false,
             'composerInstallCommand'      => $this->getComposerInstallCommand(),
             'composerPostInstallScripts'  => implode("\n", $this->config[$this->stage]['composerPostInstallScripts'] ?? []),
+            'preReleaseScripts'          => implode("\n", $this->config[$this->stage]['preReleaseScripts'] ?? []),
             'postReleaseScripts'          => implode("\n", $this->config[$this->stage]['postReleaseScripts'] ?? []),
         ];
 

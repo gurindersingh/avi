@@ -102,6 +102,8 @@ class Init extends Command
 
         $this->askComposerPostInstallScripts();
 
+        $this->askPreReleaseScripts();
+
         $this->askPostReleaseScripts();
     }
 
@@ -262,6 +264,20 @@ class Init extends Command
 
         if ($scripts) {
             $this->config[$this->stage]['composerPostInstallScripts'] = collect(explode(',', $scripts))->filter()->map(fn($str) => trim($str))->toArray();
+        }
+    }
+
+    protected function askPreReleaseScripts()
+    {
+        $this->config[$this->stage]['preReleaseScripts'] = Arr::get($this->config, "{$this->stage}.preReleaseScripts", []);
+
+        terminal()->clear();
+        render("<p class='bg-white text-green-700 p-2'>Add post release scripts. e.g. php artisan optimize</p>");
+
+        $scripts = $this->ask('Add comma seperated list of scripts you want to run before new release?');
+
+        if ($scripts) {
+            $this->config[$this->stage]['preReleaseScripts'] = collect(explode(',', $scripts))->filter()->map(fn($str) => trim($str))->toArray();
         }
     }
     

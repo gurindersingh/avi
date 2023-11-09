@@ -27,7 +27,7 @@ echo_white() {
 # Make required Directories
 ################################################
 mkdir -p /home/ubuntu/{{ $appName }}/{releases,storage,deployments}
-mkdir -p /home/ubuntu/{{ $appName }}/storage/{app/public,logs,framework/cache,framework/sessions,framework/testing,framework/views}
+mkdir -p /home/ubuntu/{{ $appName }}/storage/{app/public,logs,framework/cache/data,framework/sessions,framework/testing,framework/views}
 mkdir -p /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 
 ################################################
@@ -127,6 +127,17 @@ echo_white ""
 #echo_white "Seeding production..."
 #php artisan fm:seed-production
 #echo_white "Seeded..."
+
+################################################
+# Pre Release Scripts
+################################################O
+echo_blue "------------------------------------------"
+echo_blue "Running post release scripts"
+echo_blue "------------------------------------------"
+echo_white ""
+{{ $preReleaseScripts }}
+#echo_white "Optimizing after post release..."
+#php artisan optimize
 
 ################################################
 # Release New
