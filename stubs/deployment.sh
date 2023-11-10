@@ -132,12 +132,10 @@ echo_white ""
 # Pre Release Scripts
 ################################################O
 echo_blue "------------------------------------------"
-echo_blue "Running post release scripts"
+echo_blue "Running pre release scripts"
 echo_blue "------------------------------------------"
 echo_white ""
 {{ $preReleaseScripts }}
-#echo_white "Optimizing after post release..."
-#php artisan optimize
 
 ################################################
 # Release New
