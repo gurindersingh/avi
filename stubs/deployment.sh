@@ -30,6 +30,7 @@ mkdir -p /home/ubuntu/{{ $appName }}/{releases,storage,deployments}
 mkdir -p /home/ubuntu/{{ $appName }}/storage/{app/public,logs,framework/cache/data,framework/sessions,framework/testing,framework/views}
 mkdir -p /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 
+
 ################################################
 # Make SSH File to clone repo from github
 ################################################
@@ -42,7 +43,7 @@ rm -rf ~/.ssh/known_hosts && \
 cat > /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa << EOF
 {{ $gitDeploySshKeyContent }}
 EOF
-chmod 400 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+sudo chmod 600 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
 rm -rf /home/ubuntu/.ssh/config
 cat > /home/ubuntu/.ssh/config <<EOF
 Host github.com
@@ -52,6 +53,13 @@ Host github.com
 	IdentityFile /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
 EOF
 @endif
+
+sudo chmod -R 700 /home/ubuntu/.ssh
+sudo chmod -R 644 /home/ubuntu/.ssh/id_server.pub
+sudo chmod -R 600 /home/ubuntu/.ssh/id_server
+sudo chmod -R 600 /home/ubuntu/.ssh/config
+sudo chmod -R 600 /home/ubuntu/.ssh/known_hosts
+sudo chmod -R 600 /home/ubuntu/.ssh/authorized_keys
 
 ################################################
 # Clone git repo in current release folder
@@ -88,16 +96,18 @@ cd /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}
 @if(isset($composerAuthToken))
 echo_white ""
 echo_blue "------------------------------------------"
-echo_blue "Installing composer: COMPOSER_AUTH='{\"github-oauth\": {\"github.com\": \"{{ $composerAuthToken }}\"}}' {{ $composerInstallCommand }}"
-echo_blue "------------------------------------------"
-echo_white ""
-COMPOSER_AUTH='{"github-oauth": {"github.com": "{{ $composerAuthToken }}"}}' {{ $composerInstallCommand }}
-@else
-echo_blue "------------------------------------------"
 echo_blue "Installing composer: {{ $composerInstallCommand }}"
+# echo_blue "Installing composer: COMPOSER_AUTH='{\"github-oauth\": {\"github.com\": \"{{ $composerAuthToken }}\"}}' {{ $composerInstallCommand }}"
 echo_blue "------------------------------------------"
 echo_white ""
 {{ $composerInstallCommand }}
+# COMPOSER_AUTH='{ "github-oauth": {"github.com": "{{ $composerAuthToken }}"} }' {{ $composerInstallCommand }}
+@else
+echo_blue "------------------------------------------"
+echo_blue "Installing composer: {!! $composerInstallCommand !!}"
+echo_blue "------------------------------------------"
+echo_white ""
+{!! $composerInstallCommand !!}
 @endif
 
 ################################################
@@ -137,6 +147,24 @@ echo_blue "------------------------------------------"
 echo_white ""
 {{ $preReleaseScripts }}
 
+sudo chown -R ubuntu:www-data /home/ubuntu/{{ $appName }}
+
+sudo chgrp -R www-data /home/ubuntu/{{ $appName }}/storage
+sudo chgrp -R www-data /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}/bootstrap/cache
+
+sudo chmod -R ug+rwx /home/ubuntu/{{ $appName }}/storage
+sudo chmod -R ug+rwx /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}/bootstrap/cache
+
+sudo chown -R ubuntu:www-data /home/ubuntu/{{ $appName }}
+
+chmod -R 775 /home/ubuntu/{{ $appName }}/storage/framework
+chmod -R 775 /home/ubuntu/{{ $appName }}/storage/logs
+chmod -R 775 /home/ubuntu/{{ $appName }}/releases/{{ $currentRelease }}/bootstrap/cache
+
+sudo chmod 600 /home/ubuntu/{{ $appName }}/deployments/{{ $currentRelease }}/id_rsa
+
+# touch /home/ubuntu/{{ $appName }}/storage/logs/laravel.log
+
 ################################################
 # Release New
 ################################################
@@ -159,10 +187,10 @@ echo_white ""
 #echo_white "Optimizing after post release..."
 #php artisan optimize
 
+@if($compileVite && $compileViteSsr)
 ################################################
 # Reload SSR Server
 ################################################
-@if($compileVite && $compileViteSsr)
 echo_blue "------------------------------------------"
 echo_blue "Reload SSR Server"
 echo_blue "------------------------------------------"
@@ -180,6 +208,7 @@ else
 fi
 @endif
 
+@if($reloadQueue)
 ################################################
 # Reload Services - Supervisor & PHP FPM
 ################################################
@@ -193,6 +222,7 @@ if sudo supervisorctl version 2>/dev/null; then
     sudo supervisorctl update
     sudo supervisorctl restart all
 fi
+@endif
 
 ################################################
 # Cleanup old releases

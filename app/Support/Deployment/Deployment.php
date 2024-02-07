@@ -114,8 +114,9 @@ class Deployment
             'compileViteSsr'              => $this->config[$this->stage]['compileViteSsr'] ?? false,
             'composerInstallCommand'      => $this->getComposerInstallCommand(),
             'composerPostInstallScripts'  => implode("\n", $this->config[$this->stage]['composerPostInstallScripts'] ?? []),
-            'preReleaseScripts'          => implode("\n", $this->config[$this->stage]['preReleaseScripts'] ?? []),
+            'preReleaseScripts'           => implode("\n", $this->config[$this->stage]['preReleaseScripts'] ?? []),
             'postReleaseScripts'          => implode("\n", $this->config[$this->stage]['postReleaseScripts'] ?? []),
+            'reloadQueue'                 => Arr::get($this->config[$this->stage], "reloadQueue", false),
         ];
 
         return $this;
@@ -123,7 +124,19 @@ class Deployment
 
     protected function getComposerInstallCommand(): string
     {
-        return Arr::toCssClasses([
+        // $composerAuth = [
+        //     "github-oauth" => [
+        //         "github.com" => "",
+        //     ],
+        //     "http-basic" => [
+        //         "satis.apsonex.com" => [
+        //             "username" => "",
+        //             "password" => "",
+        //         ],
+        //     ],
+        // ];
+
+        return 'COMPOSER_AUTH=\'' . json_encode($this->config[$this->stage]['composerAuth'], true) . '\' ' . Arr::toCssClasses([
             'composer install',
             '--optimize-autoloader' => $this->config[$this->stage]['composerOptimizeAutoloader'] ?? false,
             '--no-dev'              => $this->config[$this->stage]['composerNoDev'] ?? false,
@@ -143,14 +156,14 @@ class Deployment
         render("<p class='bg-white text-green-700 p-2'>Copying deployments scrips on remote servers</p>");
 
         $closures = collect(Arr::get($this->config[$this->stage], 'webServers.ips'))->map(function ($ip) {
-            return fn() => $this->createCopyScriptToRemoteServerPromise($ip);
+            return fn () => $this->createCopyScriptToRemoteServerPromise($ip);
         })->toArray();
 
         $startedAt = microtime(true);
 
         Fork::new()
             ->after(
-                parent: fn() => $this->deploymentFinished()
+                parent: fn () => $this->deploymentFinished()
             )
             ->run(...$closures);
 
@@ -174,7 +187,7 @@ class Deployment
             ['ssh', '-i', $sshFile, $user . '@' . $ip, "zsh {$deployPath}/{$this->config['appName']}/deployments/{$this->currentRelease}/deployment-run.sh"],
         ]);
 
-        $commands = $commands->map(fn($command) => implode(' ', $command))->implode(' && ');
+        $commands = $commands->map(fn ($command) => implode(' ', $command))->implode(' && ');
 
         $process = Process::fromShellCommandline($commands, Path::currentDirectory());
 
