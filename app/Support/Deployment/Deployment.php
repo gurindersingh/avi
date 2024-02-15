@@ -8,6 +8,9 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 use LaravelZero\Framework\Commands\Command;
+use PragmaRX\Yaml\Package\Facade;
+use Symfony\Component\Yaml\Yaml;
+
 use function Termwind\{render, terminal};
 
 class Deployment
@@ -54,21 +57,29 @@ class Deployment
 
     protected function readConfig(): static
     {
-        if (!File::exists(Path::currentDirectory('avi.json'))) {
-            $this->exitWithError('avi.json not found. Please run avi deploy:init');
+        if (
+            !File::exists(Path::currentDirectory('avi.yml')) &&
+            !File::exists(Path::currentDirectory('avi.json'))
+        ) {
+            $this->exitWithError('avi.json or avi.yml not found. Please run avi deploy:init');
         }
 
-        $config = json_decode(File::get(Path::currentDirectory('avi.json')), true);
-
-        if (json_last_error() > 0) {
-            $this->command->error('Invalid avi.json file. ' . json_last_error_msg());
-            exit(1);
+        if (File::exists(Path::currentDirectory('avi.yml'))) {
+            $this->config = Yaml::parse(
+                File::get(Path::currentDirectory('avi.yml'))
+            );
+        } else {
+            $this->config = json_decode(File::get(Path::currentDirectory('avi.json')), true);
+            if (json_last_error() > 0) {
+                $this->command->error('Invalid avi.json file. ' . json_last_error_msg());
+                exit(1);
+            }
         }
 
-        $this->config = $config;
+        dd($this->config);
 
         if (!Arr::get($this->config, 'gitRepo')) {
-            $this->exitWithError('Git repo is not defined in avi.json');
+            $this->exitWithError('Git repo is not defined in avi config file');
         }
 
         return $this;
@@ -104,7 +115,7 @@ class Deployment
             'gitRepoAbsoluteAddress'      => str($this->config['gitRepo'])->afterLast(':')->toString(),
             'gitBranch'                   => $this->config[$this->stage]['gitBranch'],
             'currentRelease'              => $this->currentRelease,
-            'backupCount'                 => $this->config[$this->stage]['backupCount'],
+            'backupCount'                 => (int)$this->config[$this->stage]['backupCount'],
             'sshKeyPathToConnectToServer' => Arr::get($this->config[$this->stage], 'sshKeyPathToConnectToServer'),
             'gitDeploySshKey'             => Arr::get($this->config[$this->stage], 'gitDeploySshKey'),
             'gitDeploySshKeyContent'      => Arr::has($this->config[$this->stage], 'gitDeploySshKey') ? File::get(Arr::get($this->config[$this->stage], 'gitDeploySshKey')) : null,
