@@ -76,7 +76,7 @@ class Deployment
             }
         }
 
-        dd($this->config);
+        // dd($this->config);
 
         if (!Arr::get($this->config, 'gitRepo')) {
             $this->exitWithError('Git repo is not defined in avi config file');
@@ -94,14 +94,6 @@ class Deployment
             $this->exitWithError("{$this->stage} configuration is missing in avi.json file");
         }
 
-        return $this;
-    }
-
-    protected function ensureEnvFileExist(): static
-    {
-        if (!File::exists($this->getLocalEnvFile())) {
-            $this->exitWithError("missing .env.{$this->stage} file");
-        }
         return $this;
     }
 
@@ -225,11 +217,6 @@ class Deployment
     public function getCurrentRelease(): int
     {
         return $this->currentRelease;
-    }
-
-    protected function getLocalEnvFile(): string
-    {
-        return Path::currentDirectory(".env.{$this->stage}");
     }
 
     protected function deploymentFinished(): void

@@ -2,12 +2,14 @@
 
 namespace App\Support\Deployment;
 
+use App\Concerns\Makeable;
 use App\Support\Blade;
 use App\Support\Path;
 use Illuminate\Support\Facades\File;
 
 class DeploymentBladeCompiler
 {
+    use Makeable;
 
     protected string $localDeploymentFilePath;
 
@@ -16,15 +18,13 @@ class DeploymentBladeCompiler
     protected string $artifactsRootDir;
     protected string $artifactsDir;
 
-    public static function make(): static
+    public function __construct()
     {
-        return new self();
+        $this->cleanDir();
     }
 
     public function compile(Deployment $deployment): static
     {
-        $this->cleanDir();
-
         config(['view.compiled' => Path::getBladeCachePath()]);
 
         $this->artifactsDir = $this->artifactsRootDir . '/' . $deployment->getCurrentRelease();

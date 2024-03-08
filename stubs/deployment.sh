@@ -2,6 +2,10 @@
 
 CURRENT_RELEASE="{{ $currentRelease }}"
 
+IS_OCTANE="{{ $isOctane ? 'YES' : 'NO' }}"
+
+MIGRATION_SERVER_IP="{{ $migrationServerIp }}"
+
 GREEN='\033[0;32m'
 echo_green() {
     echo -e "${GREEN}${1}${NOCOLOR}"

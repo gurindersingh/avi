@@ -22,7 +22,7 @@ class Path
     public static function getBladeCachePath(): string
     {
         File::ensureDirectoryExists(
-            Path::currentDirectory('.avi/bladeCache')
+            Path::currentDirectory('.avi/blade-cache')
         );
 
         return Path::currentDirectory('.avi/blade-cache');
