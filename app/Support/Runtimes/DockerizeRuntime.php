@@ -4,14 +4,14 @@ namespace App\Support\Runtimes;
 
 class DockerizeRuntime extends BaseRuntime
 {
-
     protected function process()
     {
-        if (!$this->isWeb() || !$this->dto()->isFrankephpServer()) return;
+        if (!$this->isWeb() || !$this->dto()->isFrankephpServer()) {
+            return;
+        }
 
-        $this->addContent('dockerize_for_web', $this->content());
+        $this->addContent("dockerize_for_web", $this->content());
     }
-
 
     protected function content(): string
     {
@@ -62,7 +62,8 @@ RUN install-php-extensions \
 
 # https://github.com/mlocati/docker-php-extension-installer#supported-php-extensions
 RUN install-php-extensions \
-    imagick
+    imagick \
+    sockets
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -79,8 +80,7 @@ COPY frankenphp/opcache.ini \$PHP_INI_DIR/conf.d/
 
 COPY ./Caddyfile /app/
 
-RUN install-php-extensions \
-    sockets
+RUN apt-get update && apt-get install -y vim
 
 RUN mkdir /proexpert.config
 
@@ -136,8 +136,8 @@ docker run -d \
     -p 80:8000 \
     --name=apxprox-web-instance \
     --restart=unless-stopped \
-    -v ./releases/{{ $newRelease }}:/app \
-    -v ./storage:/app/storage \
+    -v $PWD/releases/{{ $newRelease }}:/app \
+    -v $PWD/storage:/app/storage \
     apxprox-web:latest
 
 docker image prune -a --filter "until=60m" --force
@@ -147,13 +147,13 @@ docker container prune --force
 BLADE;
 
         return $this->compileBlade($string, [
-            'domain' => $this->dto()->domain,
-            'newRelease' => $this->dto()->newRelease,
-            'sshKeyContent' => $this->dto()->sshKeyContent,
-            'gitUser' => $this->dto()->gitUser,
-            'repo' => $this->dto()->repo,
-            'gitToken' => $this->dto()->gitToken,
-            'gitBranch' => $this->dto()->gitBranch,
+            "domain" => $this->dto()->domain,
+            "newRelease" => $this->dto()->newRelease,
+            "sshKeyContent" => $this->dto()->sshKeyContent,
+            "gitUser" => $this->dto()->gitUser,
+            "repo" => $this->dto()->repo,
+            "gitToken" => $this->dto()->gitToken,
+            "gitBranch" => $this->dto()->gitBranch,
         ]);
     }
 }

@@ -13,7 +13,7 @@ trait Utilities
 
     public string $newRelease;
 
-    protected array $config;
+    protected array $config = [];
 
     public string $domain;
 

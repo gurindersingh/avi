@@ -5,23 +5,19 @@ namespace App\Support\Deployment;
 use App\Support\Path;
 use Spatie\Fork\Fork;
 use Illuminate\Support\Arr;
+use Symfony\Component\Yaml\Yaml;
+use PragmaRX\Yaml\Package\Facade;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
-use LaravelZero\Framework\Commands\Command;
-use PragmaRX\Yaml\Package\Facade;
-use Symfony\Component\Yaml\Yaml;
-
 use function Termwind\{render, terminal};
+
+use LaravelZero\Framework\Commands\Command;
 
 class Deployment
 {
     use Utilities;
 
     protected Command $command;
-
-    protected array $config = [];
-
-    protected string $stage;
 
     protected array $bladeVars = [
         'appName'                  => null,
